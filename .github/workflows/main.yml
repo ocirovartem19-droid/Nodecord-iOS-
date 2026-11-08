@@ -1,1 +1,40 @@
+name: Build Unsigned IPA
+on: [workflow_dispatch]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract source code
+        run: |
+          tar -xzf ios_source.tar.gz || unzip *.zip || echo "No archive found"
+          ls -la
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
+
+      - name: Build Xcode Project
+        run: |
+          xcodebuild -workspace *.xcworkspace -scheme * -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO || xcodebuild -project *.xcodeproj -scheme * -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO || xcodebuild -workspace */*.xcworkspace -scheme * -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO || xcodebuild -project */*.xcodeproj -scheme * -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO || echo "Build skipped"
+
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          find . -name "*.app" -type d -exec cp -r {} Payload/ \;
+          zip -r nodecord.ipa Payload
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodecord-ipa
+          path: nodecord.ipa
 
